@@ -2,8 +2,10 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const connectDB = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
+const connectDB = require("./src/config/db");
+const authRoutes = require("./src/routes/authRoutes");
+const eventRoutes = require("./src/routes/eventRoutes");
+const bookingRoutes = require("./src/routes/bookingRoutes");
 
 dotenv.config();
 
@@ -16,6 +18,8 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 
 
