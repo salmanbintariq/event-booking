@@ -17,6 +17,10 @@ const bookingSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    otpVerified: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled"],
