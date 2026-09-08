@@ -145,3 +145,39 @@ exports.verifyOTP = async (req, res) => {
     });
   }
 };
+
+
+//-------------Get current user-------------
+exports.getMe = async (req, res) => {
+  try {
+    return res.status(200).json({
+      user: req.user,
+    });
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+//-------------Logout function-------------
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+    return res.status(200).json({
+      message: "Logout successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }  
+}
