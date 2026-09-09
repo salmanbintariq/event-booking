@@ -1,20 +1,73 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
+import PublicRoute from "./components/PublicRoute";
+
+import Home from "./pages/Home";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+import UserDashboard from "./pages/UserDashboard";
+import EventDetail from "./pages/EventDetail";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailed from "./pages/PaymentFailed";
+
 function App() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="bg-surface border border-border rounded-xl p-8 text-center shadow-sm">
-        <h1 className="text-4xl font-bold text-primary">
-          EventBooking
-        </h1>
+    <BrowserRouter>
+      <Navbar />
 
-        <p className="mt-3 text-text-muted">
-          Discover and book amazing events.
-        </p>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
 
-        <button className="mt-6 rounded-lg bg-primary px-6 py-3 font-medium text-white hover:bg-primary-hover">
-          Explore Events
-        </button>
-      </div>
-    </div>
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+
+        <Route path="/events/:id" element={<EventDetail />} />
+
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+
+        <Route path="/payment/failed" element={<PaymentFailed />} />
+
+        {/* User Protected Route */}
+        <Route
+          path="/my-bookings"
+          element={
+            <ProtectedRoute>
+              <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Protected Route */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
