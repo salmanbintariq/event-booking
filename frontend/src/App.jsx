@@ -13,6 +13,7 @@ import UserDashboard from "./pages/UserDashboard";
 import EventDetail from "./pages/EventDetail";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
+import VerifyOTP from "./pages/VerifyOTP";
 
 function App() {
   return (
@@ -40,6 +41,8 @@ function App() {
             </PublicRoute>
           }
         />
+
+        <Route path="/verify-otp" element={<VerifyOTP />} />
 
         <Route path="/events/:id" element={<EventDetail />} />
 

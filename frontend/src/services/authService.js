@@ -1,7 +1,7 @@
 import api from "../utils/axios";
 
 export const registerUser = async (userData) => {
-  const response = await api.post("/auth/reigister", userData);
+  const response = await api.post("/auth/register", userData);
   return response.data;
 }
 
