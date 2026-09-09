@@ -135,7 +135,7 @@ exports.verifyOTP = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Account verified successfully. You can now log in.",
+      message: "Account verified successfully. You can now log in!",
     });
   } catch (error) {
     console.error("OTP verification error:", error);

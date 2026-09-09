@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 const Register = () => {
   const { register } = useAuth();
+
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -16,6 +18,7 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // handle form submition
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -34,6 +37,13 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
       });
+
+      navigate("/verify-otp", {
+        state: {
+          email: formData.email,
+        },
+      });
+
     } catch (error) {
       setError(
         error.response?.data?.message ||
