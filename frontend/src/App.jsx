@@ -14,6 +14,7 @@ import EventDetail from "./pages/EventDetail";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
 import VerifyOTP from "./pages/VerifyOTP";
+import Booking from "./pages/Booking";
 
 function App() {
   return (
@@ -69,6 +70,16 @@ function App() {
             </AdminRoute>
           }
         />
+
+        <Route
+          path="/events/:id/book"
+          element={
+            <ProtectedRoute>
+              <Booking />
+            </ProtectedRoute>
+          }
+        />
+        
       </Routes>
     </BrowserRouter>
   );

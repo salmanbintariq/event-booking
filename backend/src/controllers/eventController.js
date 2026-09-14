@@ -2,7 +2,6 @@ const Event = require("../models/Event");
 
 // @desc    Get all events
 exports.getAllEvents = async (req, res) => {
-  console.log("Query:", req.query);
   try {
     const { search, category, location } = req.query;
     const filter = {};
@@ -37,9 +36,6 @@ exports.getAllEvents = async (req, res) => {
     if (location) {
       filter.location = location;
     }
-
-    console.log("Filter:", filter);
-
     const events = await Event.find(filter);
     return res.status(200).json({ events });
   } catch (error) {
