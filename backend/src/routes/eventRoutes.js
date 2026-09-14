@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', getAllEvents);
 
 // Get event by ID
-router.get('/:id', protect, getEventById);
+router.get('/:id', getEventById);
 
 // Create event (admin only)
 router.post('/', protect, admin, createEvent);
