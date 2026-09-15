@@ -1,5 +1,5 @@
 const Event = require("../models/Event");
-
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
 // @desc    Get all events
 exports.getAllEvents = async (req, res) => {
   try {
@@ -59,6 +59,12 @@ exports.getEventById = async (req, res) => {
 // @desc    Create a new event
 exports.createEvent = async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Event image is required",
+      });
+    }
+
     const {
       title,
       description,
@@ -67,8 +73,11 @@ exports.createEvent = async (req, res) => {
       category,
       totalSeats,
       price,
-      imageURL,
     } = req.body;
+
+    // Upload image to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer);
+
     const event = await Event.create({
       title,
       description,
@@ -78,16 +87,19 @@ exports.createEvent = async (req, res) => {
       totalSeats,
       availableSeats: totalSeats,
       price,
-      imageURL,
+      imageURL: result.secure_url,
       createdBy: req.user._id,
     });
-    return res
-      .status(201)
-      .json({ message: "Event created successfully", event });
+
+    return res.status(201).json({
+      message: "Event created successfully",
+      event,
+    });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Error creating event", error: error.message });
+    return res.status(500).json({
+      message: "Error creating event",
+      error: error.message,
+    });
   }
 };
 
