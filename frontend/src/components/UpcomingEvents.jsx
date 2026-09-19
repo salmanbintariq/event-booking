@@ -2,14 +2,22 @@ import { useEffect, useState } from "react";
 import EventCard from "./EventCard";
 import api from "../utils/axios";
 
-const UpcomingEvents = () => {
+const UpcomingEvents = ({ search }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchEvents = async () => {
     try {
-      const { data } = await api.get("/events");
+      setLoading(true);
+      setError("");
+
+      const { data } = await api.get("/events", {
+        params: {
+          search,
+        },
+      });
+
       setEvents(data.events);
     } catch (error) {
       setError("Unable to load events. Please try again.");
@@ -20,7 +28,7 @@ const UpcomingEvents = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [search]);
 
   return (
     <section id="events" className="mx-auto max-w-7xl px-6 py-18 lg:px-8">

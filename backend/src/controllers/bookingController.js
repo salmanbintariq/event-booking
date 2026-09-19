@@ -72,7 +72,7 @@ exports.bookEvent = async (req, res) => {
     const existingBooking = await Booking.findOne({
       userId: req.user._id,
       eventId: event._id,
-      status: { $ne: "cancelled" },
+      status: { $nin: ["cancelled", "rejected"] },
     });
     if (existingBooking) {
       return res
@@ -179,36 +179,34 @@ exports.confirmBooking = async (req, res) => {
 
     // 1. Find booking
     const booking = await Booking.findById(id)
-    .populate("userId", "name email")
-    .populate("eventId", "title");
+      .populate("userId", "name email")
+      .populate("eventId", "title");
 
     if (!booking) {
-      return res.status(404).json({message: "Booking not found"});
+      return res.status(404).json({
+        message: "Booking not found",
+      });
     }
 
     // 2. Make sure OTP was verified
     if (!booking.otpVerified) {
-      return res.status(400).json({message: "Booking OTP not verified"});
+      return res.status(400).json({
+        message: "Booking OTP not verified",
+      });
     }
 
     // 3. Check if booking is already confirmed
-    if (booking.status === "confirmed") {
-      return res.status(400).json({message: "Booking is already confirmed"});
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        message: `Booking cannot be confirmed because it is ${booking.status}`,
+      });
     }
 
-    // 4. Payment status
-    if (booking.paymentStatus ==="paid") {
-      return res.status(400).json({message: "Booking is already paid"});
-    }
-
-    // 5. Mark payment as paid
-    booking.paymentStatus = "paid";
-
-    // 6. Mark booking as confirmed
+    // 4. Mark booking as confirmed
     booking.status = "confirmed";
     await booking.save();
 
-    // 7. Send confirmation email
+    // 5. Send confirmation email
     await sendBookingEmail(
       booking.userId.email,
       booking.userId.name,
@@ -216,14 +214,15 @@ exports.confirmBooking = async (req, res) => {
     );
 
     return res.status(200).json({
-      message: "Booking confirmed and payment verified successfully",
+      message: "Booking confirmed successfully",
       booking,
     });
-
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({
+      message: "Internal server error",
+    });
   }
-}
+};
 
 // @desc cancel booking
 exports.cancelBooking = async (req, res) => {
@@ -236,7 +235,7 @@ exports.cancelBooking = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-     // 2. Make sure the booking belongs to the logged-in user
+    // 2. Make sure the booking belongs to the logged-in user
     if (booking.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         message: "You are not authorized to cancel this booking",
@@ -276,12 +275,10 @@ exports.cancelBooking = async (req, res) => {
       message: "Booking cancelled successfully",
       booking,
     });
-
-
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
 // @desc get logged-in user's bookings
 exports.getMyBookings = async (req, res) => {
@@ -303,6 +300,120 @@ exports.getMyBookings = async (req, res) => {
 
     return res.status(500).json({
       message: "Internal server error",
+    });
+  }
+};
+
+// @desc get all bookings
+// @access Admin
+exports.getAllBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .populate("userId", "name email")
+      .populate("eventId", "title date location category price imageURL")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      message: "Bookings fetched successfully",
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching all bookings:", error);
+
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+// @desc reject booking (admin only)
+exports.rejectBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find booking
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        message: `Booking cannot be rejected because it is ${booking.status}`,
+      });
+    }
+
+    // Find event
+    const event = await Event.findById(booking.eventId);
+
+    if (!event) {
+      return res.status(404).json({
+        message: "Event not found",
+      });
+    }
+
+    // 5. Reject booking
+    booking.status = "rejected";
+
+    // 6. Return reserved seats
+    event.availableSeats += booking.seats;
+
+    await booking.save();
+    await event.save();
+
+    return res.status(200).json({
+      message: "Booking rejected successfully",
+      booking,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+
+// @desc Get admin dashboard statistics
+exports.getAdminStats = async (req, res) => {
+  try {
+    const totalEvents = await Event.countDocuments();
+
+    const totalBookings = await Booking.countDocuments();
+
+    const pendingBookings = await Booking.countDocuments({
+      status: "pending",
+    });
+
+    const revenueResult = await Booking.aggregate([
+      {
+        $match: {
+          paymentStatus: "paid",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
+
+    return res.status(200).json({
+      totalEvents,
+      totalBookings,
+      pendingBookings,
+      totalRevenue,
+    });
+  } catch (error) {
+    console.error("Error fetching admin statistics:", error);
+
+    return res.status(500).json({
+      message: "Error fetching admin statistics",
     });
   }
 };

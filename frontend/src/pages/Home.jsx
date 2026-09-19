@@ -78,7 +78,7 @@ const Home = () => {
         </div>
       </section>
 
-      <UpcomingEvents/>
+      <UpcomingEvents search={search}/>
       <WhyEventBooking/>
       <HowItWorks/>
       <HomeCTA/>

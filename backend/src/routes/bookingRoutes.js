@@ -7,6 +7,9 @@ const {
   sendBookingOtp,
   cancelBooking,
   verifyBookingOtp,
+  getAllBookings,
+  rejectBooking,
+  getAdminStats
 } = require("../controllers/bookingController");
 
 const router = express.Router();
@@ -23,10 +26,19 @@ router.post("/verify-otp", protect, verifyBookingOtp);
 // Get all bookings
 router.get("/my", protect, getMyBookings);
 
+// Get all bookings (admin only)
+router.get("/", protect, admin, getAllBookings);
+
 // Confirm a booking (admin only)
 router.put("/:id/confirm", protect, admin, confirmBooking);
 
 // Cancel a booking
 router.delete("/:id", protect, cancelBooking);
+
+// Reject booking (admin only)
+router.put("/:id/reject", protect, admin, rejectBooking);
+
+// Admin Stats (admin only)
+router.get("/admin-stats", protect, admin, getAdminStats);
 
 module.exports = router;

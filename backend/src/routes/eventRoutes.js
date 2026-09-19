@@ -16,7 +16,7 @@ router.get('/:id', getEventById);
 router.post('/', protect, admin, upload.single("image"), createEvent);
 
 // Update event (admin only)
-router.put('/:id', protect, admin, updateEvent);
+router.put('/:id', protect, admin, upload.single("image"), updateEvent);
 
 // Delete event (admin only)
 router.delete('/:id', protect, admin, deleteEvent);

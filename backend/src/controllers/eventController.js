@@ -1,5 +1,8 @@
 const Event = require("../models/Event");
+const Bookings = require("../models/Bookings");
 const uploadToCloudinary = require("../utils/cloudinaryUpload");
+
+
 // @desc    Get all events
 exports.getAllEvents = async (req, res) => {
   try {
@@ -36,7 +39,7 @@ exports.getAllEvents = async (req, res) => {
     if (location) {
       filter.location = location;
     }
-    const events = await Event.find(filter);
+    const events = await Event.find(filter).sort({ createdAt: -1 });
     return res.status(200).json({ events });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -65,15 +68,8 @@ exports.createEvent = async (req, res) => {
       });
     }
 
-    const {
-      title,
-      description,
-      date,
-      location,
-      category,
-      totalSeats,
-      price,
-    } = req.body;
+    const { title, description, date, location, category, totalSeats, price } =
+      req.body;
 
     // Upload image to Cloudinary
     const result = await uploadToCloudinary(req.file.buffer);
@@ -107,20 +103,13 @@ exports.createEvent = async (req, res) => {
 exports.updateEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
+
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    const {
-      title,
-      description,
-      date,
-      location,
-      category,
-      totalSeats,
-      price,
-      imageURL,
-    } = req.body;
+    const { title, description, date, location, category, totalSeats, price } =
+      req.body;
 
     // Update only the fields that are provided in the request body
     event.title = title ?? event.title;
@@ -129,7 +118,6 @@ exports.updateEvent = async (req, res) => {
     event.location = location ?? event.location;
     event.category = category ?? event.category;
     event.price = price ?? event.price;
-    event.imageURL = imageURL ?? event.imageURL;
 
     if (totalSeats !== undefined) {
       // Adjust availableSeats based on the change in totalSeats
@@ -143,6 +131,13 @@ exports.updateEvent = async (req, res) => {
       const seatsDifference = totalSeats - event.totalSeats;
       event.totalSeats = totalSeats;
       event.availableSeats += seatsDifference;
+    }
+
+    // Upload new image only if admin selected one
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer);
+
+      event.imageURL = result.secure_url;
     }
 
     const updatedEvent = await event.save();
@@ -160,8 +155,19 @@ exports.updateEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
+    
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    const bookingExists = await Bookings.exists({
+      eventId: event._id
+    })
+
+    if (bookingExists) {
+      return res.status(400).json({
+        message: "Event cannot be deleted because it has bookings.",
+      });
     }
 
     await event.deleteOne();
