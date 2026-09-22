@@ -49,13 +49,19 @@ const Booking = () => {
 
       const newBookingId = data.booking._id;
 
-      // Send- otp
-      await api.post("/bookings/send-otp", {
+      // Send - Booking otp
+      const { data: otpData } = await api.post("/bookings/send-otp", {
         bookingId: newBookingId,
       });
 
       setBookingId(newBookingId);
-      setOtpStep(true);
+
+      if (otpData.demoMode) {
+        setOtpStep(true);
+        setOtpVerified(true);
+      } else {
+        setOtpStep(true);
+      }
     } catch (error) {
       setBookingError(
         error.response?.data?.message ||

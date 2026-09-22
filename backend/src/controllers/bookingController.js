@@ -25,6 +25,18 @@ exports.sendBookingOtp = async (req, res) => {
         .json({ message: "You are not authorized to access this booking" });
     }
 
+    const isDemoMode = process.env.DEMO_MODE === "true";
+
+    if (isDemoMode) {
+      booking.otpVerified = true;
+      await booking.save();
+
+      return res.status(200).json({
+        message: "Booking verified in demo mode.",
+        demoMode: true,
+      });
+    }
+
     // 3. Generate OTP
     const otp = generateOTP();
 
@@ -374,7 +386,6 @@ exports.rejectBooking = async (req, res) => {
     });
   }
 };
-
 
 // @desc Get admin dashboard statistics
 exports.getAdminStats = async (req, res) => {

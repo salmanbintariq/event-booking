@@ -38,12 +38,15 @@ const Register = () => {
         password: formData.password,
       });
 
-      navigate("/verify-otp", {
-        state: {
-          email: formData.email,
-        },
-      });
-
+      if (data.requiresVerification) {
+        navigate("/verify-otp", {
+          state: {
+            email: formData.email,
+          },
+        });
+      } else {
+        navigate("/login");
+      }
     } catch (error) {
       setError(
         error.response?.data?.message ||

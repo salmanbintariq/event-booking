@@ -15,8 +15,8 @@ exports.registerUser = async (req, res) => {
 
   if (!password || password.length < 6) {
     return res.status(400).json({
-      message: "Password must be at least 6 characters long"
-    })
+      message: "Password must be at least 6 characters long",
+    });
   }
 
   try {
@@ -27,21 +27,29 @@ exports.registerUser = async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    const isDemoMode = process.env.DEMO_MODE === "true";
+
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role: "user",
-      isVerified: false,
+      isVerified: isDemoMode,
     });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await OTP.create({ email, otp, action: "account_verification" });
-    await sendOTPEmail(email, otp, "account_verification");
+    if (!isDemoMode) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      await OTP.create({ email, otp, action: "account_verification" });
+      await sendOTPEmail(email, otp, "account_verification");
+    }
 
     res.status(201).json({
-      message: "User registered successfully. Please check your email for the OTP to verify your account.",
+      message: isDemoMode
+        ? "Registration successful. You can now log in."
+        : "User registered successfully. Please check your email for the OTP to verify your account.",
       email: newUser.email,
+      requiresVerification: !isDemoMode,
     });
   } catch (error) {
     res.status(500).json({ message: "Error registering user" });
@@ -120,7 +128,7 @@ exports.verifyOTP = async (req, res) => {
     const user = await User.findOneAndUpdate(
       { email },
       { isVerified: true },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
@@ -145,7 +153,6 @@ exports.verifyOTP = async (req, res) => {
     });
   }
 };
-
 
 //-------------Get current user-------------
 exports.getMe = async (req, res) => {
@@ -179,5 +186,5 @@ exports.logout = async (req, res) => {
     return res.status(500).json({
       message: "Internal server error",
     });
-  }  
-}
+  }
+};
