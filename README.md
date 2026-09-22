@@ -27,11 +27,11 @@ https://github.com/salmanbintariq/event-booking
 
 ### Admin Dashboard
 
-![My Bookings](./screenshots/3.png)
+![Admin Dashboard](./screenshots/3.png)
 
 ### Event Form
 
-![Admin Dashboard](./screenshots/4.png)
+![Event Form](./screenshots/4.png)
 
 ---
 
@@ -73,6 +73,57 @@ https://github.com/salmanbintariq/event-booking
 * Protected frontend routes
 * Role-based authorization
 * Production deployment with Vercel and Render
+* Demo mode for public testing without email verification
+
+---
+
+## Demo Mode
+
+The deployed version uses a `DEMO_MODE` environment variable so visitors can test the application without requiring a production email domain.
+
+When:
+
+```env
+DEMO_MODE=true
+```
+
+the application:
+
+* Skips account verification OTP emails
+* Automatically marks newly registered users as verified
+* Skips booking OTP email verification
+* Automatically verifies bookings after they are created
+* Allows visitors to register using their own email address without receiving an email
+
+The actual OTP implementation remains in the project.
+
+When:
+
+```env
+DEMO_MODE=false
+```
+
+the normal OTP flow is enabled:
+
+```text
+Registration
+    ↓
+Account OTP
+    ↓
+Verify Account
+    ↓
+Login
+
+Booking
+    ↓
+Booking OTP
+    ↓
+Verify Booking
+    ↓
+Admin Review
+```
+
+For real email delivery, Resend requires a verified sending domain.
 
 ---
 
@@ -89,9 +140,7 @@ Create booking
         ↓
 Booking becomes Pending
         ↓
-Booking OTP is sent
-        ↓
-User verifies OTP
+Booking OTP verification
         ↓
 Admin reviews booking
         ↓
@@ -101,6 +150,10 @@ Confirm    Reject
    ↓         ↓
 Confirmed  Rejected
 ```
+
+In normal OTP mode, the booking must be OTP-verified before the admin can confirm it.
+
+In demo mode, the booking is automatically marked as OTP-verified so visitors can test the complete booking workflow without email delivery.
 
 A pending booking reserves the selected seats. If the booking is rejected or cancelled, those seats are returned to the event.
 
@@ -112,7 +165,7 @@ Payment processing is intentionally not included in the current version.
 
 Authentication uses JWT stored in an HTTP-only cookie.
 
-The authentication flow is:
+The normal authentication flow is:
 
 ```text
 Register
@@ -127,6 +180,8 @@ JWT HTTP-only Cookie
    ↓
 Protected Routes
 ```
+
+In demo mode, account OTP verification is skipped because newly registered users are automatically marked as verified.
 
 The backend also uses role-based authorization:
 
@@ -164,7 +219,7 @@ Frontend route protection improves the user experience, while the backend middle
 * Mongoose
 * JWT
 * bcryptjs
-* Nodemailer
+* Resend
 * Multer
 * Cloudinary
 * cookie-parser
@@ -176,6 +231,7 @@ Frontend route protection improves the user experience, while the backend middle
 * **Backend:** Render
 * **Database:** MongoDB Atlas
 * **Image Storage:** Cloudinary
+* **Email Service:** Resend
 
 ---
 
@@ -183,6 +239,7 @@ Frontend route protection improves the user experience, while the backend middle
 
 ```text
 event-booking/
+
 │
 ├── backend/
 │   ├── src/
@@ -272,16 +329,32 @@ Create a `.env` file inside the `backend` directory:
 
 ```env
 MONGO_URI=your_mongodb_connection_string
+
 JWT_SECRET=your_jwt_secret
 
-EMAIL_USER=your_email
-EMAIL_PASS=your_email_app_password
+RESEND_API_KEY=your_resend_api_key
 
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 FRONTEND_URL=http://localhost:5173
+
+DEMO_MODE=true
+```
+
+### `DEMO_MODE`
+
+For local development and public demo testing:
+
+```env
+DEMO_MODE=true
+```
+
+For real OTP email verification after configuring a verified Resend domain:
+
+```env
+DEMO_MODE=false
 ```
 
 ### Frontend
@@ -292,7 +365,7 @@ Create a `.env` file inside the `frontend` directory:
 VITE_API_URL=http://localhost:5000/api
 ```
 
-For production, the frontend uses the deployed Render API:
+For production:
 
 ```env
 VITE_API_URL=https://event-booking-30rq.onrender.com/api
@@ -316,6 +389,7 @@ cd event-booking
 
 ```bash
 cd backend
+
 npm install
 ```
 
@@ -328,6 +402,8 @@ backend/.env
 ```
 
 and add the required variables.
+
+For local development, `DEMO_MODE=true` can be used to test registration and booking without email delivery.
 
 ### 4. Start the backend
 
@@ -347,6 +423,7 @@ Open another terminal:
 
 ```bash
 cd frontend
+
 npm install
 ```
 
@@ -387,11 +464,14 @@ The project includes several security-related practices:
 * HTTP-only authentication cookies
 * Protected backend routes
 * Role-based admin authorization
-* OTP verification
+* OTP verification in normal production mode
 * Environment variables for secrets
 * Backend validation for booking and event operations
+* Booking ownership checks
 * CORS configuration for the production frontend
 * File upload size limits for event images
+
+`DEMO_MODE` is an application-level demonstration setting. It bypasses email OTP verification for the public demo but does not bypass authentication, password hashing, JWT authentication, booking authorization, or admin authorization.
 
 ---
 
@@ -402,9 +482,11 @@ The booking system maintains event seat availability.
 For example:
 
 ```text
-Total Seats:      100
-Available Seats:   95
-Booked Seats:       5
+Total Seats:       100
+
+Available Seats:    95
+
+Booked Seats:        5
 ```
 
 When a booking is created:
@@ -433,7 +515,9 @@ This protects historical booking records and prevents bookings from referencing 
 Event
   ↓
 Has bookings?
+
   ├── Yes → Deletion blocked
+  │
   └── No  → Event can be deleted
 ```
 
@@ -449,11 +533,11 @@ The application is deployed using a separated frontend/backend architecture.
               ┌────────┴────────┐
               ↓                 ↓
           Vercel              Render
-       React Frontend       Express Backend
+      React Frontend       Express Backend
                                 │
                          ┌──────┴──────┐
                          ↓             ↓
-                    MongoDB Atlas   Cloudinary
+                   MongoDB Atlas   Cloudinary
 ```
 
 ### Frontend
@@ -471,6 +555,18 @@ MongoDB Atlas stores users, OTP records, events, and bookings.
 ### Image Storage
 
 Cloudinary stores uploaded event images.
+
+### Email
+
+Resend is used for OTP email delivery when `DEMO_MODE=false`.
+
+The public demo currently uses:
+
+```env
+DEMO_MODE=true
+```
+
+so visitors can test the application without requiring a verified email domain.
 
 ---
 
@@ -496,14 +592,10 @@ Potential future improvements include:
 
 **Muhammad Salman Tariq**
 
-BS Information Technology
-
 GitHub:
+
 https://github.com/salmanbintariq
 
 Email:
+
 [salmantariq8018@gmail.com](mailto:salmantariq8018@gmail.com)
-
----
-
-
