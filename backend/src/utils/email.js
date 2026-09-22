@@ -1,15 +1,11 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const dotenv = require("dotenv");
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const FROM_EMAIL = "EventBooking <onboarding@resend.dev>";
 
 // Send OTP email
 exports.sendOTPEmail = async (email, otp, type) => {
@@ -28,9 +24,9 @@ exports.sendOTPEmail = async (email, otp, type) => {
       ? "If you didn't create this account, please ignore this email."
       : "If you didn't request this booking, please ignore this email.";
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [email],
       subject: title,
 
       html: `
@@ -55,20 +51,24 @@ exports.sendOTPEmail = async (email, otp, type) => {
 
       text: `EventBooking
 
-        ${title}
+${title}
 
-        ${message}
+${message}
 
-        Your OTP is: ${otp}
+Your OTP is: ${otp}
 
-        This OTP will expire in 5 minutes.
+This OTP will expire in 5 minutes.
 
-        ${warning}`,
-    };
+${warning}`,
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-    console.log(`OTP email sent to ${email} for ${type}`);
+    console.log(
+      `OTP email sent to ${email} for ${type}. Resend ID: ${data.id}`,
+    );
   } catch (error) {
     console.error(`Error sending OTP email to ${email} for ${type}:`, error);
 
@@ -79,9 +79,9 @@ exports.sendOTPEmail = async (email, otp, type) => {
 // Send booking confirmation email
 exports.sendBookingEmail = async (userEmail, userName, eventTitle) => {
   try {
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: userEmail,
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [userEmail],
       subject: "Booking Confirmation",
 
       html: `
@@ -100,15 +100,21 @@ exports.sendBookingEmail = async (userEmail, userName, eventTitle) => {
 
       text: `Hi ${userName},
 
-        Your booking for ${eventTitle} has been confirmed.
+Your booking for ${eventTitle} has been confirmed.
 
-        Thank you for using EventBooking!`,
-    };
+Thank you for using EventBooking!`,
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Booking confirmation email sent to ${userEmail}`);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    console.log(
+      `Booking confirmation email sent to ${userEmail}. Resend ID: ${data.id}`,
+    );
   } catch (error) {
     console.error(`Error sending booking email to ${userEmail}:`, error);
+
     throw error;
   }
 };
